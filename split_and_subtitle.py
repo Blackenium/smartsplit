@@ -536,3 +536,63 @@ def burn_only(clip: Path, srt, out: Path, max_duration: int):
          "-c:a", "copy", "-t", str(max_duration), str(out)],
         check=True)
     step_done("burning subtitles")
+
+
+# --------------------------------------------------------------------------- #
+#  Per-platform processing (TikTok / YouTube)
+# --------------------------------------------------------------------------- #
+def process_platform(model, video: Path, platform: str, duration: int,
+                     base_out: Path, language, args) -> tuple[int, int, int]:
+    """Split the video to the platform's length and generate the final clips.
+
+    Output: base_out/<platform>/<title>_NN.mp4 (title = source file name).
+    Returns (succeeded, skipped, total).
+    """
+    stem = video.stem
+    final_dir = base_out / platform
+    final_dir.mkdir(parents=True, exist_ok=True)
+    clips_dir = base_out / f".clips_{platform}"
+
+    print(f"\n[{platform}] clips of <= {duration}s  ->  {final_dir}/")
+    clips = split_video(video, clips_dir, duration, args.limit, args.start)
+    pad = max(2, len(str(len(clips))))   # zero-padded index: _01, _02 ... (or _001 if >99)
+
+    ok, skipped = 0, 0
+    with tempfile.TemporaryDirectory() as tmp:
+        for idx, clip in enumerate(clips, 1):
+            out = final_dir / f"{stem}_{idx:0{pad}d}.mp4"
+            print(f"[{idx}/{len(clips)}] {out.name}")
+            try:
+                captions, lang = transcribe(model, clip, language)
+                n = len(captions)
+
+                if args.reframe == "none":
+                    srt = Path(tmp) / f"{clip.stem}.srt"
+                    if n:
+                        write_srt(captions, srt)
+                    burn_only(clip, srt if n else None, out, duration)
+                else:
+                    src_w, src_h, fps, fps_frac = probe_video(clip)
+                    track = None
+                    if args.reframe == "track":
+                        track = compute_face_track(clip, src_w, src_h, fps)
+                        if track is None:
+                            print("   no face detected -> center crop")
+                    ass = Path(tmp) / f"{clip.stem}.ass"
+                    if n:
+                        write_ass(captions, ass)
+                    reframe_and_burn(clip, ass if n else None, out, track,
+                                     src_w, src_h, fps, fps_frac, args.reframe, duration)
+            except Exception as e:
+                # A corrupt/unreadable clip must NOT abort the whole video.
+                skipped += 1
+                detail = str(e).splitlines()[0][:120] if str(e).strip() else type(e).__name__
+                print(f"   clip skipped ({detail})")
+                out.unlink(missing_ok=True)
+                continue
+            print(f"   -> {out.name}")
+            ok += 1
+
+    if not args.keep_clips:
+        shutil.rmtree(clips_dir, ignore_errors=True)
+    return ok, skipped, len(clips)
