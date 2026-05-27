@@ -516,3 +516,23 @@ def reframe_and_burn(clip: Path, ass, out: Path, track,
         last = err.splitlines()[-1] if err else "ffmpeg failed"
         raise RuntimeError(f"ffmpeg (reframe/burn): {last}")
     step_done("reframe + subtitles")
+
+
+def burn_only(clip: Path, srt, out: Path, max_duration: int):
+    """reframe='none': keep the original aspect ratio, just burn the subtitles.
+    Capped at max_duration seconds (see reframe_and_burn)."""
+    if srt is None:
+        subprocess.run(
+            [FFMPEG, "-hide_banner", "-loglevel", "error", "-y",
+             "-i", str(clip), "-t", str(max_duration), "-c", "copy", str(out)],
+            check=True)
+        step_done("copy (no speech)")
+        return
+    vf = f"subtitles={ffmpeg_filter_escape(srt)}:force_style='{LANDSCAPE_STYLE}'"
+    subprocess.run(
+        [FFMPEG, "-hide_banner", "-loglevel", "error", "-y",
+         "-i", str(clip), "-vf", vf,
+         "-c:v", "libx264", "-preset", "medium", "-crf", "20",
+         "-c:a", "copy", "-t", str(max_duration), str(out)],
+        check=True)
+    step_done("burning subtitles")
