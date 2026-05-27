@@ -143,3 +143,29 @@ def step_progress(label: str, frac: float):
 def step_done(label: str):
     sys.stdout.write(f"\r   {label:<24} [{_bar(1.0)}] 100% done\n")
     sys.stdout.flush()
+
+
+# --------------------------------------------------------------------------- #
+#  Probing / splitting
+# --------------------------------------------------------------------------- #
+def probe_video(path: Path) -> tuple[int, int, float, str]:
+    """Return (width, height, fps, fps_fraction) of the video stream."""
+    out = subprocess.run(
+        [FFPROBE, "-v", "error", "-select_streams", "v:0",
+         "-show_entries", "stream=width,height,r_frame_rate",
+         "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+        capture_output=True, text=True, check=True,
+    )
+    w, h, rate = out.stdout.split()
+    num, den = rate.split("/")
+    fps = float(num) / float(den) if float(den) else 25.0
+    return int(w), int(h), fps, rate
+
+
+def video_duration(path: Path) -> float:
+    out = subprocess.run(
+        [FFPROBE, "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+        capture_output=True, text=True, check=True,
+    )
+    return float(out.stdout.strip())
