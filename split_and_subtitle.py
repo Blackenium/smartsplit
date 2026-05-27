@@ -403,3 +403,45 @@ def _moving_average(a: np.ndarray, win: int) -> np.ndarray:
     pad = win // 2
     ap = np.pad(a, pad, mode="edge")
     return np.convolve(ap, np.ones(win) / win, mode="valid")[:len(a)]
+
+
+def compute_face_track(clip: Path, src_w: int, src_h: int, fps: float):
+    """Smoothed face-center path (one value per frame), or None if no face found."""
+    if not CV2_AVAILABLE or not YUNET_MODEL.exists():
+        return None
+    det_w = min(DET_WIDTH, src_w)
+    scale = det_w / src_w
+    det_h = int(round(src_h * scale))
+    detector = cv2.FaceDetectorYN.create(
+        str(YUNET_MODEL), "", (det_w, det_h),
+        score_threshold=0.6, nms_threshold=0.3, top_k=20)
+
+    cap = cv2.VideoCapture(str(clip))
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
+    step = max(1, int(round(fps / SAMPLE_FPS)))
+    sample_idx: list[int] = []
+    sample_cx: list[float] = []
+    i = 0
+    while True:
+        ok, frame = cap.read()
+        if not ok:
+            break
+        if i % step == 0:
+            small = cv2.resize(frame, (det_w, det_h)) if scale != 1 else frame
+            _, faces = detector.detect(small)
+            if faces is not None and len(faces):
+                best = max(faces, key=lambda f: float(f[2]) * float(f[3]))
+                cx = (float(best[0]) + float(best[2]) / 2) / scale
+                sample_idx.append(i)
+                sample_cx.append(cx)
+            step_progress("face analysis", i / total)
+        i += 1
+    cap.release()
+    step_done("face analysis")
+
+    n_frames = i
+    if not sample_idx:
+        return None
+    xs = np.arange(n_frames)
+    track = np.interp(xs, sample_idx, sample_cx)
+    return _moving_average(track, int(round(fps * SMOOTH_SECONDS)))
