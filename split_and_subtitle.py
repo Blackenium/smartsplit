@@ -317,3 +317,15 @@ def _layout(cap):
     """(word list, two-line break index) for a caption."""
     tokens = [t for _, _, t in cap]
     return tokens, _split_two_lines(tokens)
+
+
+def write_srt(captions, path: Path):
+    """Write captions as SRT (two lines max), one entry per caption."""
+    blocks = []
+    for i, cap in enumerate(captions, 1):
+        tokens, brk = _layout(cap)
+        text = " ".join(tokens) if not brk else \
+            " ".join(tokens[:brk]) + "\n" + " ".join(tokens[brk:])
+        blocks.append(
+            f"{i}\n{srt_timestamp(cap[0][0])} --> {srt_timestamp(cap[-1][1])}\n{text}\n")
+    path.write_text("\n".join(blocks), encoding="utf-8")
