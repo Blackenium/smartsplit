@@ -84,3 +84,43 @@ FFPROBE = "ffprobe"
 def fail(msg: str):
     print(f"Error: {msg}", file=sys.stderr)
     sys.exit(1)
+
+
+# --------------------------------------------------------------------------- #
+#  ffmpeg detection (libass)
+# --------------------------------------------------------------------------- #
+def _has_subtitles_filter(ffmpeg_bin: str) -> bool:
+    try:
+        out = subprocess.run([ffmpeg_bin, "-hide_banner", "-filters"],
+                             capture_output=True, text=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    return any(len(p) >= 2 and p[1] == "subtitles"
+               for p in (line.split() for line in out.stdout.splitlines()))
+
+
+def resolve_ffmpeg() -> tuple[str, str]:
+    """Find an ffmpeg with libass and its matching ffprobe.
+
+    Preference order: FFMPEG env var, Homebrew's ffmpeg-full (which ships
+    libass), then ffmpeg on PATH.
+    """
+    candidates: list[str] = []
+    if os.environ.get("FFMPEG"):
+        candidates.append(os.environ["FFMPEG"])
+    candidates += [
+        "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg",  # Apple Silicon
+        "/usr/local/opt/ffmpeg-full/bin/ffmpeg",     # Intel
+    ]
+    if shutil.which("ffmpeg"):
+        candidates.append(shutil.which("ffmpeg"))
+
+    for bin_path in candidates:
+        if bin_path and Path(bin_path).exists() and _has_subtitles_filter(bin_path):
+            ffprobe = Path(bin_path).with_name("ffprobe")
+            probe = str(ffprobe) if ffprobe.exists() else (shutil.which("ffprobe") or "ffprobe")
+            return bin_path, probe
+
+    fail("No ffmpeg with the 'subtitles' filter (libass) was found.\n"
+         "   Homebrew's default ffmpeg does not include libass.\n"
+         "   Fix it with: brew install ffmpeg-full")
