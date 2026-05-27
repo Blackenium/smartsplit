@@ -44,3 +44,17 @@ try:
     CV2_AVAILABLE = True
 except ImportError:
     CV2_AVAILABLE = False
+
+DEFAULT_TIKTOK_DURATION = 90    # TikTok clips: should be longer than 60s
+YOUTUBE_MAX_DURATION = 59       # YouTube Shorts: platform limit (59s or less)
+DEFAULT_MODEL = "base"          # tiny | base | small | medium | large-v3
+DEFAULT_LANGUAGE = "fr"         # ISO code (e.g. "fr", "en") or "auto"
+
+PLATFORMS = ("tiktok", "youtube")
+
+OUT_W, OUT_H = 1080, 1920       # vertical 9:16
+DET_WIDTH = 640                 # face-detection width (downscale = faster)
+SAMPLE_FPS = 5                  # face detections per second
+SMOOTH_SECONDS = 0.6            # smoothing window for the face path
+
+YUNET_MODEL = Path(__file__).resolve().parent / "models" / "face_detection_yunet_2023mar.onnx"
