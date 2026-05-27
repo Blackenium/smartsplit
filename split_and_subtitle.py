@@ -246,3 +246,23 @@ def _split_two_lines(tokens: list[str]) -> int:
         if best_diff is None or diff < best_diff:
             best_diff, best_i = diff, i
     return best_i
+
+
+def _merge_words(words):
+    """faster-whisper words -> (start, end, text), re-gluing elisions and attached
+    punctuation (t + 'es -> t'es ; l' + eau -> l'eau ; word + , -> word,)."""
+    out: list[tuple[float, float, str]] = []
+    for w in words:
+        txt = w.word.strip()
+        if not txt:
+            continue
+        glue_to_prev = out and (
+            txt[0] in "'’,.!?;:…)»"      # starts with apostrophe/punctuation
+            or out[-1][2][-1] in "'’("            # or previous ends with an apostrophe
+        )
+        if glue_to_prev:
+            ps, _, pt = out[-1]
+            out[-1] = (ps, w.end, pt + txt)
+        else:
+            out.append((w.start, w.end, txt))
+    return out
