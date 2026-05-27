@@ -596,3 +596,114 @@ def process_platform(model, video: Path, platform: str, duration: int,
     if not args.keep_clips:
         shutil.rmtree(clips_dir, ignore_errors=True)
     return ok, skipped, len(clips)
+
+
+# --------------------------------------------------------------------------- #
+#  Entry point
+# --------------------------------------------------------------------------- #
+def main():
+    parser = argparse.ArgumentParser(
+        description="Split a video into 9:16 clips (face tracking + auto subtitles), "
+                    "organised per platform: TikTok (> 60s) and/or YouTube Shorts (<= 59s).")
+    parser.add_argument("video", type=Path, help="Input video")
+    parser.add_argument("--platform", choices=["tiktok", "youtube", "both"], default="both",
+                        help="Platform(s) to generate (default: both). "
+                             "TikTok = long clips (> 60s), YouTube = Shorts (<= 59s)")
+    parser.add_argument("--tiktok-duration", type=int, default=None, metavar="SECONDS",
+                        help=f"Max length of a TikTok clip, should be > 60 "
+                             f"(default: {DEFAULT_TIKTOK_DURATION})")
+    parser.add_argument("--youtube-duration", type=int, default=YOUTUBE_MAX_DURATION,
+                        metavar="SECONDS",
+                        help=f"Max length of a YouTube Shorts clip, capped at "
+                             f"{YOUTUBE_MAX_DURATION} (default: {YOUTUBE_MAX_DURATION})")
+    parser.add_argument("--max-duration", type=int, default=None, metavar="SECONDS",
+                        help="(deprecated) alias for --tiktok-duration")
+    parser.add_argument("--model", default=DEFAULT_MODEL,
+                        help=f"Whisper model (default: {DEFAULT_MODEL}). "
+                             "tiny/base = fast, small = better for French")
+    parser.add_argument("--language", default=DEFAULT_LANGUAGE,
+                        help=f"Language code or 'auto' (default: {DEFAULT_LANGUAGE})")
+    parser.add_argument("--reframe", choices=["track", "center", "none"], default="track",
+                        help="track = follow the face in 9:16 (default), "
+                             "center = fixed center 9:16 crop, none = keep original")
+    parser.add_argument("--limit", type=int, default=None, metavar="N",
+                        help="Quick test: only process the first N clips "
+                             "(and only read the start of the source)")
+    parser.add_argument("--start", type=float, default=0.0, metavar="SECONDS",
+                        help="Start reading the source at this second "
+                             "(e.g. to skip an intro during a quick test)")
+    parser.add_argument("--out-dir", type=Path, default=None,
+                        help="Output directory (default: <video>_final). The tiktok/ "
+                             "and youtube/ subfolders are created inside it.")
+    parser.add_argument("--keep-clips", action="store_true",
+                        help="Keep the intermediate raw clip folders")
+    args = parser.parse_args()
+
+    global FFMPEG, FFPROBE
+    FFMPEG, FFPROBE = resolve_ffmpeg()
+    if not args.video.exists():
+        fail(f"File not found: {args.video}")
+    if args.reframe == "track" and not CV2_AVAILABLE:
+        fail("OpenCV is required for face tracking: pip install -r requirements.txt\n"
+             "   (or use --reframe center / --reframe none)")
+    if args.reframe == "track" and not YUNET_MODEL.exists():
+        fail(f"Face-detection model not found: {YUNET_MODEL}\n"
+             "   Re-download it (see README) or use --reframe center.")
+
+    # Per-platform durations. --tiktok-duration wins; otherwise the deprecated
+    # --max-duration alias; otherwise the default.
+    tiktok_dur = args.tiktok_duration or args.max_duration or DEFAULT_TIKTOK_DURATION
+    if tiktok_dur <= 60:
+        print(f"Warning: TikTok duration {tiktok_dur}s <= 60s - TikTok targets clips > 60s.")
+    youtube_dur = args.youtube_duration
+    if youtube_dur > YOUTUBE_MAX_DURATION:
+        print(f"Warning: YouTube Shorts are <= {YOUTUBE_MAX_DURATION}s - capping "
+              f"({youtube_dur}s -> {YOUTUBE_MAX_DURATION}s).")
+        youtube_dur = YOUTUBE_MAX_DURATION
+
+    targets = []
+    if args.platform in ("tiktok", "both"):
+        targets.append(("tiktok", tiktok_dur))
+    if args.platform in ("youtube", "both"):
+        targets.append(("youtube", youtube_dur))
+
+    try:
+        from faster_whisper import WhisperModel
+    except ImportError:
+        fail("faster-whisper is not installed. Activate the venv then: "
+             "pip install -r requirements.txt")
+
+    stem = args.video.stem
+    base_out = args.out_dir if args.out_dir else args.video.parent / f"{stem}_final"
+    base_out.mkdir(parents=True, exist_ok=True)
+
+    print(f"Input  : {args.video.name}")
+    print(f"Output : {base_out}/")
+    print("Targets: " + " | ".join(f"{p} (<= {d}s)" for p, d in targets))
+    print(f"Reframe: {args.reframe} ({OUT_W}x{OUT_H})"
+          + (f"  -  quick test ({args.limit} clip(s))" if args.limit else ""))
+    print(f"ffmpeg : {FFMPEG}")
+
+    print(f"\nLoading Whisper model '{args.model}' "
+          "(the model is downloaded on first run)...")
+    model = WhisperModel(args.model, device="cpu", compute_type="int8")
+    language = None if args.language == "auto" else args.language
+
+    summary = []
+    for platform, dur in targets:
+        ok, skipped, total = process_platform(
+            model, args.video, platform, dur, base_out, language, args)
+        summary.append((platform, ok, skipped, total))
+
+    print(f"\nDone -> {base_out.name}/")
+    for platform, ok, skipped, total in summary:
+        line = f"   - {platform:<8}: {ok}/{total} clip(s)"
+        if skipped:
+            line += f"  ({skipped} skipped)"
+        print(line)
+    if args.keep_clips:
+        print("   (raw clips kept in .clips_<platform>/)")
+
+
+if __name__ == "__main__":
+    main()
