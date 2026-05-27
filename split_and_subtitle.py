@@ -292,3 +292,28 @@ def _chunk_words(merged):
             flush()
     flush()
     return captions
+
+
+def transcribe(model, clip: Path, language) -> tuple[list, str]:
+    """Transcribe a clip into short captions. Returns (captions, language).
+
+    captions: list of captions; each caption is a list of (start, end, word).
+    """
+    segments, info = model.transcribe(str(clip), language=language, beam_size=5,
+                                      vad_filter=True, word_timestamps=True)
+    dur = info.duration or 1.0
+    captions = []
+    for seg in segments:
+        step_progress("transcribing", seg.end / dur)
+        if seg.words:
+            captions.extend(_chunk_words(_merge_words(seg.words)))
+        elif seg.text.strip():            # fallback if no word timestamps
+            captions.append([(seg.start, seg.end, seg.text.strip())])
+    step_done("transcribing")
+    return captions, info.language
+
+
+def _layout(cap):
+    """(word list, two-line break index) for a caption."""
+    tokens = [t for _, _, t in cap]
+    return tokens, _split_two_lines(tokens)
