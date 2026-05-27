@@ -266,3 +266,29 @@ def _merge_words(words):
         else:
             out.append((w.start, w.end, txt))
     return out
+
+
+def _chunk_words(merged):
+    """Group (start, end, word) tuples into captions (list of word lists)."""
+    captions, buf = [], []
+
+    def chars():
+        return sum(len(t) for _, _, t in buf) + max(0, len(buf) - 1)
+
+    def flush():
+        if buf:
+            captions.append(buf.copy())
+        buf.clear()
+
+    for s, e, txt in merged:
+        if buf and (
+            chars() + 1 + len(txt) > MAX_CAPTION_CHARS
+            or len(buf) >= MAX_CAPTION_WORDS
+            or (e - buf[0][0]) > MAX_CAPTION_SECONDS
+        ):
+            flush()
+        buf.append((s, e, txt))
+        if txt.endswith((".", "!", "?", "…", ":")):
+            flush()
+    flush()
+    return captions
