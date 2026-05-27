@@ -375,3 +375,31 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, Effect, Text
             events.append(
                 f"Dialogue: 0,{_ass_ts(start)},{_ass_ts(end)},Default,,0,0,0,,{text}")
     path.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
+
+
+# --------------------------------------------------------------------------- #
+#  Face tracking / 9:16 reframing
+# --------------------------------------------------------------------------- #
+def crop_dims(src_w: int, src_h: int) -> tuple[str, int, int]:
+    """9:16 crop size within the source. axis='x' (horizontal tracking) for a
+    landscape source, 'y' otherwise."""
+    target = OUT_W / OUT_H  # 9/16
+    if src_w / src_h > target:           # source wider than 9:16 -> crop width
+        crop_h = src_h
+        crop_w = int(round(src_h * target))
+        axis = "x"
+    else:                                # source narrower -> crop height
+        crop_w = src_w
+        crop_h = int(round(src_w / target))
+        axis = "y"
+    return axis, min(crop_w, src_w), min(crop_h, src_h)
+
+
+def _moving_average(a: np.ndarray, win: int) -> np.ndarray:
+    if win <= 1:
+        return a
+    if win % 2 == 0:
+        win += 1
+    pad = win // 2
+    ap = np.pad(a, pad, mode="edge")
+    return np.convolve(ap, np.ones(win) / win, mode="valid")[:len(a)]
