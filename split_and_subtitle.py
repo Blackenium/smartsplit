@@ -223,3 +223,26 @@ def split_video(video: Path, clips_dir: Path, max_duration: int,
         fail("ffmpeg produced no clips.")
     print(f"{len(clips)} clip(s) created\n")
     return clips
+
+
+# --------------------------------------------------------------------------- #
+#  Transcription and caption building
+# --------------------------------------------------------------------------- #
+def srt_timestamp(seconds: float) -> str:
+    ms = int(round(seconds * 1000))
+    h, ms = divmod(ms, 3_600_000)
+    m, ms = divmod(ms, 60_000)
+    s, ms = divmod(ms, 1000)
+    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+
+def _split_two_lines(tokens: list[str]) -> int:
+    """Index where to break a caption into two balanced lines. 0 = single line."""
+    if len(tokens) < 2 or len(" ".join(tokens)) <= LINE_MAX_CHARS:
+        return 0
+    best_i, best_diff = 1, None
+    for i in range(1, len(tokens)):
+        diff = abs(len(" ".join(tokens[:i])) - len(" ".join(tokens[i:])))
+        if best_diff is None or diff < best_diff:
+            best_diff, best_i = diff, i
+    return best_i
