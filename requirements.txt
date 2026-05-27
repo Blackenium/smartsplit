@@ -1,0 +1,2 @@
+faster-whisper>=1.0.0
+opencv-python>=4.10.0       # détection de visage (FaceDetectorYN) + recadrage 9:16
