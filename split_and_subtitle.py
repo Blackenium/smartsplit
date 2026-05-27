@@ -75,3 +75,12 @@ MAX_CAPTION_CHARS = 30      # max length of a caption (about two lines)
 MAX_CAPTION_WORDS = 6
 MAX_CAPTION_SECONDS = 3.5
 LINE_MAX_CHARS = 15         # target length of a single line (two-line balancing)
+
+# Resolved at startup: an ffmpeg built with libass.
+FFMPEG = "ffmpeg"
+FFPROBE = "ffprobe"
+
+
+def fail(msg: str):
+    print(f"Error: {msg}", file=sys.stderr)
+    sys.exit(1)
