@@ -1,0 +1,20 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# Tooling / local config
+.claude/
+
+# Input media and generated clips (never commit copyrighted or large files)
+input_videos/*
+!input_videos/.gitkeep
+quicktest/
+*_final/
+*__FAIT/
+*__PAS-FAIT/
+.clips_*/
