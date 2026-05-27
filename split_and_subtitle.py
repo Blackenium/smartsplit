@@ -445,3 +445,74 @@ def compute_face_track(clip: Path, src_w: int, src_h: int, fps: float):
     xs = np.arange(n_frames)
     track = np.interp(xs, sample_idx, sample_cx)
     return _moving_average(track, int(round(fps * SMOOTH_SECONDS)))
+
+
+def ffmpeg_filter_escape(path: Path) -> str:
+    s = str(path)
+    return s.replace("\\", "\\\\").replace(":", r"\:").replace("'", r"\'")
+
+
+def reframe_and_burn(clip: Path, ass, out: Path, track,
+                     src_w: int, src_h: int, fps: float, fps_frac: str, reframe: str,
+                     max_duration: int):
+    """Reframe every frame to 9:16 (tracked/centered) and burn the subtitles.
+
+    The cropped, resized frames (1080x1920 BGR) are piped to ffmpeg, which burns
+    the karaoke ASS and remuxes the clip's audio. The final clip is capped at
+    max_duration seconds: stream-copy splitting cuts at keyframes and can run a
+    little long, so we trim here (required to respect the 59s YouTube Shorts limit).
+    """
+    axis, crop_w, crop_h = crop_dims(src_w, src_h)
+
+    vf = []
+    if ass is not None:
+        vf = ["-vf", f"ass={ffmpeg_filter_escape(ass)}"]
+
+    cmd = [FFMPEG, "-hide_banner", "-loglevel", "error", "-y",
+           "-f", "rawvideo", "-pixel_format", "bgr24",
+           "-video_size", f"{OUT_W}x{OUT_H}", "-framerate", fps_frac, "-i", "pipe:0",
+           "-i", str(clip),
+           "-map", "0:v:0", "-map", "1:a:0?", *vf,
+           "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
+           "-c:a", "aac", "-t", str(max_duration), "-shortest", str(out)]
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    cap = cv2.VideoCapture(str(clip))
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or (len(track) if track is not None else 1)
+    max_frames = int(round(max_duration * fps)) if max_duration else frame_count
+    total = min(frame_count, max_frames)
+    use_track = (reframe == "track" and track is not None)
+    i = 0
+    try:
+        while True:
+            if i >= max_frames:           # do not exceed the platform's target length
+                break
+            ok, frame = cap.read()
+            if not ok:
+                break
+            if axis == "x":
+                cx = track[min(i, len(track) - 1)] if use_track else src_w / 2
+                x0 = max(0, min(int(round(cx - crop_w / 2)), src_w - crop_w))
+                crop = frame[0:crop_h, x0:x0 + crop_w]
+            else:
+                y0 = (src_h - crop_h) // 2
+                crop = frame[y0:y0 + crop_h, 0:crop_w]
+            if crop.shape[1] != OUT_W or crop.shape[0] != OUT_H:
+                crop = cv2.resize(crop, (OUT_W, OUT_H), interpolation=cv2.INTER_AREA)
+            proc.stdin.write(np.ascontiguousarray(crop).tobytes())
+            i += 1
+            if i % 10 == 0:
+                step_progress("reframe + subtitles", i / total)
+    except BrokenPipeError:
+        pass
+    finally:
+        cap.release()
+        try:
+            proc.stdin.close()
+        except (BrokenPipeError, OSError):
+            pass
+    if proc.wait() != 0:
+        err = proc.stderr.read().decode(errors="replace").strip() if proc.stderr else ""
+        last = err.splitlines()[-1] if err else "ffmpeg failed"
+        raise RuntimeError(f"ffmpeg (reframe/burn): {last}")
+    step_done("reframe + subtitles")
