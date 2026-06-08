@@ -81,6 +81,15 @@ def video_duration(path: Path) -> float:
     return float(out.stdout.strip())
 
 
+def has_audio(path: Path) -> bool:
+    """True if the file has at least one audio stream."""
+    out = subprocess.run(
+        [FFPROBE, "-v", "error", "-select_streams", "a",
+         "-show_entries", "stream=index", "-of", "csv=p=0", str(path)],
+        capture_output=True, text=True)
+    return bool(out.stdout.strip())
+
+
 def filter_escape(path: Path) -> str:
     s = str(path)
     return s.replace("\\", "\\\\").replace(":", r"\:").replace("'", r"\'")

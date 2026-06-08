@@ -122,6 +122,9 @@ def process_video(model, video: Path, targets, language, reframe: str,
 
     print(f"\nInput  : {video.name}")
     print(f"Output : {base_out}/")
+    if not ffmpeg.has_audio(video):
+        print("WARNING: this source has no audio track -> the clips will be SILENT "
+              "(if it was downloaded, the audio stream was probably not fetched).")
     print("Targets: " + " | ".join(f"{p} (<= {d}s)" for p, d in targets))
     print(f"Reframe: {reframe} ({OUT_W}x{OUT_H})"
           + (f"  -  quick test ({limit} clip(s))" if limit else ""))
