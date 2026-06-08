@@ -40,6 +40,7 @@ class EditorOpts(BaseModel):
     limit: Optional[int] = None
     start: float = 0.0
     keep_clips: bool = False
+    skip_silent: bool = False
 
 
 class SplitReq(EditorOpts):
@@ -69,6 +70,8 @@ def _editor_args(o: EditorOpts) -> List[str]:
         a += ["--start", str(o.start)]
     if o.keep_clips:
         a += ["--keep-clips"]
+    if o.skip_silent:
+        a += ["--skip-silent"]
     return a
 
 

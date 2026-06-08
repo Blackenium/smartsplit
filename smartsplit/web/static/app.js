@@ -36,7 +36,8 @@ function buildEditorOpts(fieldset) {
       <label>Limite (test)<input data-field="limit" type="number" min="1" placeholder="—"></label>
       <label>Début (s)<input data-field="start" type="number" min="0" placeholder="0"></label>
       <label class="check" style="margin-top:22px"><input data-field="keep_clips" type="checkbox"> Garder les clips bruts</label>
-    </div>`);
+    </div>
+    <label class="check"><input data-field="skip_silent" type="checkbox"> Ignorer les clips silencieux (intro, pauses, son coupé)</label>`);
   // base/model default
   $('[data-field="model"]', fieldset).value = "base";
 }
@@ -54,6 +55,7 @@ function readEditorOpts(fieldset) {
     limit: num(f("limit")),
     start: num(f("start")) || 0,
     keep_clips: f("keep_clips").checked,
+    skip_silent: f("skip_silent").checked,
   };
 }
 
