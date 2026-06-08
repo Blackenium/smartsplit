@@ -122,6 +122,20 @@ def cmd_download(args):
 
 
 # --------------------------------------------------------------------------- #
+#  web (FastAPI UI)
+# --------------------------------------------------------------------------- #
+def cmd_web(args):
+    try:
+        import uvicorn
+    except ImportError:
+        fail("FastAPI/uvicorn are not installed. Activate the venv then: "
+             "pip install -r requirements.txt")
+    from .web.app import app
+    print(f"SmartSplit web UI -> http://{args.host}:{args.port}  (Ctrl-C to stop)")
+    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
+
+
+# --------------------------------------------------------------------------- #
 #  Parser
 # --------------------------------------------------------------------------- #
 def build_parser() -> argparse.ArgumentParser:
@@ -169,6 +183,12 @@ def build_parser() -> argparse.ArgumentParser:
                        help="Split the downloaded videos into clips right away")
         add_editor_args(p)
         p.set_defaults(func=cmd_download)
+
+    # web
+    p_web = sub.add_parser("web", help="Launch the web UI (FastAPI)")
+    p_web.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1)")
+    p_web.add_argument("--port", type=int, default=8000, help="Bind port (default: 8000)")
+    p_web.set_defaults(func=cmd_web)
 
     return parser
 
