@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 from .. import ffmpeg
-from ..config import OUT_H, OUT_W, YOUTUBE_MAX_DURATION
+from ..config import OUT_H, OUT_W, SILENCE_DB, YOUTUBE_MAX_DURATION
 from ..console import fail
 from .captions import write_ass, write_srt
 from .reframe import burn_only, compute_face_track, reframe_and_burn
@@ -73,7 +73,7 @@ def _render_clip(model, clip: Path, out: Path, language, reframe: str,
 
 def process_platform(model, video: Path, platform: str, duration: int,
                      base_out: Path, language, reframe: str, limit, start: float,
-                     keep_clips: bool) -> tuple[int, int, int]:
+                     keep_clips: bool, skip_silent: bool = False) -> tuple[int, int, int]:
     """Split the video to the platform's length and generate the final clips.
 
     Output: base_out/<platform>/<title>_NN.mp4 (title = source file name).
@@ -93,6 +93,12 @@ def process_platform(model, video: Path, platform: str, duration: int,
         for idx, clip in enumerate(clips, 1):
             out = final_dir / f"{stem}_{idx:0{pad}d}.mp4"
             print(f"[{idx}/{len(clips)}] {out.name}")
+            if skip_silent:
+                peak = ffmpeg.max_volume(clip)
+                if peak <= SILENCE_DB:
+                    skipped += 1
+                    print(f"   silent clip skipped (peak {peak:.0f} dB)")
+                    continue
             try:
                 _render_clip(model, clip, out, language, reframe, duration, tmp)
             except Exception as e:
@@ -111,7 +117,8 @@ def process_platform(model, video: Path, platform: str, duration: int,
 
 
 def process_video(model, video: Path, targets, language, reframe: str,
-                  limit, start: float, out_dir, keep_clips: bool) -> Path:
+                  limit, start: float, out_dir, keep_clips: bool,
+                  skip_silent: bool = False) -> Path:
     """Run the editor over one source video for every target platform.
 
     Prints the per-video header and summary. Returns the output directory.
@@ -132,7 +139,8 @@ def process_video(model, video: Path, targets, language, reframe: str,
     summary = []
     for platform, dur in targets:
         ok, skipped, total = process_platform(
-            model, video, platform, dur, base_out, language, reframe, limit, start, keep_clips)
+            model, video, platform, dur, base_out, language, reframe, limit, start,
+            keep_clips, skip_silent)
         summary.append((platform, ok, skipped, total))
 
     print(f"\nDone -> {base_out.name}/")

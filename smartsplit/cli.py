@@ -52,6 +52,9 @@ def add_editor_args(parser: argparse.ArgumentParser):
                              "(e.g. to skip an intro during a quick test)")
     parser.add_argument("--keep-clips", action="store_true",
                         help="Keep the intermediate raw clip folders")
+    parser.add_argument("--skip-silent", action="store_true",
+                        help="Skip clips with no real audio (dead air, 'starting "
+                             "soon'/BRB screens, DMCA-muted sections)")
 
 
 def _editor_targets(args):
@@ -83,7 +86,8 @@ def cmd_split(args):
     print(f"ffmpeg : {ffmpeg.FFMPEG}")
     model = pipeline.load_model(args.model)
     pipeline.process_video(model, args.video, targets, language, args.reframe,
-                           args.limit, args.start, args.out_dir, args.keep_clips)
+                           args.limit, args.start, args.out_dir, args.keep_clips,
+                           args.skip_silent)
 
 
 # --------------------------------------------------------------------------- #
@@ -100,7 +104,8 @@ def _process_downloads(videos: list[Path], args):
     model = pipeline.load_model(args.model)
     for video in videos:
         pipeline.process_video(model, video, targets, language, args.reframe,
-                               args.limit, args.start, None, args.keep_clips)
+                               args.limit, args.start, None, args.keep_clips,
+                               args.skip_silent)
 
 
 def cmd_download(args):

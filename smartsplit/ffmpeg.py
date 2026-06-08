@@ -90,6 +90,22 @@ def has_audio(path: Path) -> bool:
     return bool(out.stdout.strip())
 
 
+def max_volume(path: Path) -> float:
+    """Peak volume in dB (0 = full scale). Returns -inf if there is no audio,
+    so a file without sound counts as silent."""
+    out = subprocess.run(
+        [FFMPEG, "-hide_banner", "-nostats", "-i", str(path),
+         "-map", "0:a:0?", "-af", "volumedetect", "-f", "null", "-"],
+        capture_output=True, text=True)
+    for line in out.stderr.splitlines():
+        if "max_volume:" in line:
+            try:
+                return float(line.split("max_volume:")[1].strip().split()[0])
+            except (ValueError, IndexError):
+                pass
+    return float("-inf")
+
+
 def filter_escape(path: Path) -> str:
     s = str(path)
     return s.replace("\\", "\\\\").replace(":", r"\:").replace("'", r"\'")

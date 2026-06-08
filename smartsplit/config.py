@@ -17,6 +17,10 @@ DEFAULT_LANGUAGE = "fr"         # ISO code (e.g. "fr", "en") or "auto"
 
 PLATFORMS = ("tiktok", "youtube")
 
+# A clip whose loudest moment is below this is treated as silent (dead air,
+# "starting soon" screens, DMCA-muted sections). Used by --skip-silent.
+SILENCE_DB = -50.0
+
 # Where downloaded source videos land by default.
 DEFAULT_INPUT_DIR = ROOT / "input_videos"
 
