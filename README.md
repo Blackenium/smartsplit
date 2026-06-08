@@ -260,11 +260,11 @@ python3 -m smartsplit download twitch "anyme023" --kind clips --latest 10 --proc
 | `--dest DIR` | `input_videos/` | Download directory |
 | `--process` | – | Split the downloaded videos into clips right away |
 
-> **Twitch caveat** — VODs expire after a while (often 7–60 days), so a channel
-> can legitimately have none. Channel **clip listing** through yt-dlp can also
-> return nothing when Twitch throttles its API. When listing comes up empty,
-> pass a **direct VOD or clip URL** (it uses a different, more reliable
-> extractor), or update yt-dlp: `pip install -U yt-dlp`.
+> **Twitch notes** — channel listing uses Twitch's public API directly (yt-dlp's
+> own channel listing currently returns nothing), then each item is downloaded by
+> yt-dlp. `--kind vods` returns the most recent broadcasts (VODs expire after
+> 7–60 days, so a channel may have few or none); `--kind clips` returns the most
+> viewed clips of all time. You can always pass a **direct VOD or clip URL** too.
 
 With `--process`, all `split` options above are also accepted on the `download`
 commands.
