@@ -199,6 +199,7 @@ python3 -m smartsplit split "input_videos/my_video.mp4" --reframe none
 | `--start SECONDS` | `0` | Start reading the source at this second (e.g. to skip an intro) |
 | `--out-dir DIR` | `<video>_final/` | Output directory; the `tiktok/` and `youtube/` subfolders are created inside |
 | `--keep-clips` | – | Keep the intermediate raw clip folders |
+| `--skip-silent` | – | Skip clips with no real audio (dead air, "starting soon"/BRB screens, DMCA-muted music) |
 
 ---
 
@@ -265,6 +266,10 @@ python3 -m smartsplit download twitch "anyme023" --kind clips --latest 10 --proc
 > yt-dlp. `--kind vods` returns the most recent broadcasts (VODs expire after
 > 7–60 days, so a channel may have few or none); `--kind clips` returns the most
 > viewed clips of all time. You can always pass a **direct VOD or clip URL** too.
+>
+> Twitch **VODs** often contain silent stretches — "starting soon"/BRB screens
+> and music muted for DMCA. Splitting a whole VOD therefore yields some silent
+> clips; add **`--skip-silent`** (or tick the box in the web UI) to drop them.
 
 With `--process`, all `split` options above are also accepted on the `download`
 commands.
