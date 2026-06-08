@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SmartSplit</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>✂️ SmartSplit</h1>
+    <nav id="tabs">
+      <button data-tab="download" class="active">Télécharger</button>
+      <button data-tab="split">Découper</button>
+      <button data-tab="clips">Clips</button>
+    </nav>
+  </header>
+
+  <main>
+    <div class="cols">
+      <section class="panel">
+        <!-- Download -->
+        <div class="tab" id="tab-download">
+          <h2>Télécharger (YouTube / Twitch)</h2>
+          <label>Source
+            <select id="dl-source">
+              <option value="youtube">YouTube</option>
+              <option value="twitch">Twitch</option>
+            </select>
+          </label>
+          <label>Chaîne / URL / nom
+            <input id="dl-channel" placeholder="@Inoxtag  ·  anyme023  ·  une URL">
+          </label>
+          <div class="row">
+            <label>Nombre (--latest)
+              <input id="dl-latest" type="number" min="1" placeholder="1">
+            </label>
+            <label id="dl-match-wrap">Filtre titre (--match)
+              <input id="dl-match" placeholder="ex: supercar">
+            </label>
+            <label id="dl-kind-wrap" hidden>Type (Twitch)
+              <select id="dl-kind">
+                <option value="vods">VODs</option>
+                <option value="clips">Clips</option>
+                <option value="all">Les deux</option>
+              </select>
+            </label>
+          </div>
+          <label>Dossier de destination (optionnel)
+            <input id="dl-dest" placeholder="input_videos/">
+          </label>
+          <label class="check">
+            <input id="dl-process" type="checkbox"> Découper en clips juste après (bout-en-bout)
+          </label>
+          <fieldset id="dl-opts" hidden><legend>Options de découpage</legend></fieldset>
+          <button class="primary" id="dl-go">Lancer le téléchargement</button>
+        </div>
+
+        <!-- Split -->
+        <div class="tab" id="tab-split" hidden>
+          <h2>Découper une vidéo locale</h2>
+          <label>Vidéo (input_videos/)
+            <span class="inline">
+              <select id="sp-video"></select>
+              <button id="sp-refresh" title="Rafraîchir">↻</button>
+            </span>
+          </label>
+          <fieldset id="sp-opts"><legend>Options de découpage</legend></fieldset>
+          <button class="primary" id="sp-go">Lancer le découpage</button>
+        </div>
+
+        <!-- Clips -->
+        <div class="tab" id="tab-clips" hidden>
+          <div class="clips-head">
+            <h2>Clips produits</h2>
+            <button id="cl-refresh">↻ Rafraîchir</button>
+          </div>
+          <div id="clips"></div>
+        </div>
+      </section>
+
+      <aside class="panel jobs">
+        <h2>Tâches</h2>
+        <ul id="jobs"></ul>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Live log drawer -->
+  <div id="log-drawer" hidden>
+    <div class="log-head">
+      <span id="log-title"></span>
+      <span class="grow"></span>
+      <button id="log-cancel">Annuler</button>
+      <button id="log-close">Fermer</button>
+    </div>
+    <pre id="log"></pre>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

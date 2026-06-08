@@ -1,0 +1,99 @@
+:root {
+  --bg: #0f1115; --panel: #181b22; --panel2: #1f232c; --border: #2a2f3a;
+  --text: #e6e8ee; --muted: #9aa3b2; --accent: #e23b4e; --accent2: #3b82f6;
+  --ok: #2ecc71; --bad: #e74c3c; --run: #f1c40f;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+header {
+  display: flex; align-items: center; gap: 24px; padding: 14px 22px;
+  border-bottom: 1px solid var(--border); background: var(--panel);
+  position: sticky; top: 0; z-index: 5;
+}
+h1 { font-size: 18px; margin: 0; }
+h2 { font-size: 15px; margin: 0 0 14px; }
+nav#tabs { display: flex; gap: 6px; }
+nav#tabs button {
+  background: transparent; color: var(--muted); border: 0; padding: 8px 14px;
+  border-radius: 8px; cursor: pointer; font-size: 14px;
+}
+nav#tabs button.active { background: var(--panel2); color: var(--text); }
+
+main { padding: 22px; max-width: 1200px; margin: 0 auto; }
+.cols { display: grid; grid-template-columns: 1fr 320px; gap: 22px; align-items: start; }
+.panel {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px;
+}
+
+label { display: block; margin-bottom: 14px; color: var(--muted); font-size: 13px; }
+label.check { display: flex; align-items: center; gap: 8px; color: var(--text); }
+label.check input { width: auto; }
+input, select {
+  width: 100%; margin-top: 5px; padding: 9px 10px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--panel2); color: var(--text);
+  font-size: 14px;
+}
+.row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.inline { display: flex; gap: 8px; margin-top: 5px; }
+.inline select { margin-top: 0; }
+.inline button { width: auto; padding: 0 12px; }
+
+fieldset {
+  border: 1px solid var(--border); border-radius: 10px; padding: 14px 14px 0;
+  margin: 4px 0 16px;
+}
+legend { color: var(--muted); padding: 0 6px; font-size: 12px; }
+
+button {
+  background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+  padding: 9px 14px; border-radius: 8px; cursor: pointer; font-size: 14px;
+}
+button:hover { border-color: var(--accent2); }
+button.primary { background: var(--accent); border-color: var(--accent); width: 100%; font-weight: 600; }
+button.primary:hover { filter: brightness(1.1); }
+
+/* Jobs */
+.jobs ul { list-style: none; margin: 0; padding: 0; }
+.jobs li {
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+  margin-bottom: 8px; cursor: pointer; background: var(--panel2);
+}
+.jobs li:hover { border-color: var(--accent2); }
+.jobs .jt { font-size: 13px; word-break: break-word; }
+.jobs .jm { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dot.running { background: var(--run); animation: pulse 1s infinite; }
+.dot.succeeded { background: var(--ok); }
+.dot.failed, .dot.cancelled { background: var(--bad); }
+.status-txt { font-size: 12px; color: var(--muted); }
+@keyframes pulse { 50% { opacity: .35; } }
+
+/* Clips */
+.clips-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.clip-group { margin-bottom: 22px; }
+.clip-group h3 { font-size: 14px; margin: 0 0 10px; color: var(--muted); }
+.clip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.clip { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 8px; }
+.clip video { width: 100%; border-radius: 6px; background: #000; aspect-ratio: 9/16; }
+.clip .cn { font-size: 11px; color: var(--muted); margin-top: 6px; word-break: break-all; }
+.badge { font-size: 10px; padding: 1px 6px; border-radius: 6px; background: var(--border); }
+
+/* Log drawer */
+#log-drawer {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 42vh; z-index: 20;
+  background: var(--panel); border-top: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+.log-head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.log-head .grow { flex: 1; }
+#log-title { font-size: 13px; color: var(--muted); }
+#log {
+  margin: 0; padding: 12px 16px; overflow: auto; flex: 1;
+  font: 12px/1.45 "SFMono-Regular", Menlo, Consolas, monospace; white-space: pre-wrap;
+}
+.empty { color: var(--muted); font-size: 13px; }
+@media (max-width: 820px) { .cols { grid-template-columns: 1fr; } }
