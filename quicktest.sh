@@ -61,7 +61,7 @@ for v in "${videos[@]}"; do
   stem="$(basename "${v%.*}")"
   echo "----------------------------------------------------------"
   echo "> $v"
-  python3 split_and_subtitle.py "$v" \
+  python3 -m smartsplit split "$v" \
     --model "$MODEL" --limit "$LIMIT" --platform "$PLATFORM" --tiktok-duration "$TIKTOKDUR" \
     --start "$START" --reframe "$REFRAME" --out-dir "quicktest/$stem"
   echo
