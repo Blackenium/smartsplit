@@ -132,6 +132,13 @@ Quote any name or path that contains spaces or special characters.
 Prefer clicking to typing? Launch the local dashboard:
 
 ```bash
+./start.sh                 # activates the venv, starts the server, opens the browser
+```
+
+`start.sh` honours `HOST` and `PORT` (e.g. `PORT=9000 ./start.sh`). Or run it
+directly:
+
+```bash
 python3 -m smartsplit web                 # http://127.0.0.1:8000
 python3 -m smartsplit web --port 9000     # custom port
 ```
