@@ -1,3 +1,5 @@
 faster-whisper>=1.0.0
 opencv-python>=4.10.0       # détection de visage (FaceDetectorYN) + recadrage 9:16
 yt-dlp>=2024.1.0            # téléchargement YouTube / Twitch (scrapers)
+fastapi>=0.110.0           # interface web
+uvicorn>=0.27.0            # serveur ASGI pour l'interface web
