@@ -15,6 +15,8 @@ API keys, no upload.
 
 ## Features
 
+- **Web UI** (`web`) — a local FastAPI dashboard to download, split, run
+  end-to-end, and browse/preview the produced clips, with live progress and logs.
 - **Scrapers** — fetch the latest upload(s) of a YouTube channel (by `@handle`,
   URL, or name) or VODs/clips from a Twitch channel, and optionally split them
   into clips in a single command (`--process`).
@@ -46,10 +48,14 @@ smartsplit/                 Python package
 │   ├── captions.py         render SRT (landscape) and karaoke ASS (vertical)
 │   ├── reframe.py          face tracking + 9:16 crop + subtitle burning
 │   └── pipeline.py         per-video / per-platform orchestration
-└── scrapers/               yt-dlp wrappers
-    ├── common.py           list / extract / download helpers
-    ├── youtube.py          channel resolution + upload selection
-    └── twitch.py           VOD / clip selection
+├── scrapers/               yt-dlp wrappers
+│   ├── common.py           list / extract / download helpers
+│   ├── youtube.py          channel resolution + upload selection
+│   └── twitch.py           VOD / clip selection
+└── web/                    FastAPI web UI
+    ├── app.py              API routes + media serving
+    ├── jobs.py             background jobs (subprocess + live event stream)
+    └── static/             index.html · app.js · style.css
 split_and_subtitle.py       backward-compatible shim → `smartsplit split`
 models/                     bundled YuNet face-detection model
 input_videos/               default download + input folder
@@ -89,7 +95,7 @@ pip install -r requirements.txt
 ```
 
 Dependencies: `faster-whisper` (transcription), `opencv-python` (face detection
-+ reframing), `yt-dlp` (downloads).
++ reframing), `yt-dlp` (downloads), `fastapi` + `uvicorn` (web UI).
 
 Face tracking uses the bundled YuNet model
 (`models/face_detection_yunet_2023mar.onnx`). If it is missing, re-download it:
@@ -118,6 +124,31 @@ python3 -m smartsplit download youtube "@Inoxtag" --latest 5 --process --platfor
 ```
 
 Quote any name or path that contains spaces or special characters.
+
+---
+
+## Web UI
+
+Prefer clicking to typing? Launch the local dashboard:
+
+```bash
+python3 -m smartsplit web                 # http://127.0.0.1:8000
+python3 -m smartsplit web --port 9000     # custom port
+```
+
+From the browser you can:
+
+- **Télécharger** — download from YouTube/Twitch with all the options, and tick
+  *« Découper en clips juste après »* to run end-to-end (`--process`).
+- **Découper** — pick a video from `input_videos/` and split it.
+- **Clips** — browse and play the produced clips (`tiktok/`, `youtube/`).
+- **Tâches** — every run is a background job with **live logs and progress**
+  (streamed over SSE); you can cancel a running job.
+
+Under the hood the web layer just runs the same CLI commands as background
+subprocesses and streams their output — no separate code path to maintain. It is
+meant for **local use** (binds to `127.0.0.1` by default); it has no
+authentication, so do not expose it to the internet as-is.
 
 ---
 
